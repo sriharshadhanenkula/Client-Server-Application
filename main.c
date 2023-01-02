@@ -19,8 +19,6 @@ int choice;
 
 int main(int argc, char *argv[])
 {
-    printf("Enter 1 for CRC and 2 for Hamming \n");
-    scanf("%d", &choice); //  choice of the user
     int pid1 = fork();
     if (pid1 == 0)
     {
@@ -39,7 +37,6 @@ int main(int argc, char *argv[])
             wait(NULL);
             printf("child process \n"); //  child process
             readBinaryDataFromFile();   //  read the binary data from the file
-            printf("Choice: %d \n", choice);
 
             execl("client", binaryData, NULL); //  call the client
         }
