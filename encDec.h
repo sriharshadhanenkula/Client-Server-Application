@@ -18,5 +18,4 @@ void removeOddParityBits(char *c);
 void sendToDataLink(char myString[], int val);
 void readBinaryDataFromFile();
 void readDataReceivedFromClient();
-void myCRC();
-void myHamming();
+void CRC();

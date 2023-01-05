@@ -7,6 +7,9 @@
 #include <ctype.h>
 #include <semaphore.h>
 #include <pthread.h>
+#include <stdbool.h>
+
+#define capacity 100000
 
 sem_t bufferEmpty1, bufferFull1, bufferEmpty2, bufferFull2, bufferEmpty3, bufferFull3, bufferEmpty4;
 sem_t bufferFull4, bufferEmpty5, bufferFull5, bufferEmpty6, bufferFull6;
@@ -23,16 +26,111 @@ int totalSum = 0;
 char finalString[1000000];
 int finalCount = 0;
 
+char myBinaryString[100000];
 
-void *charAFunction(void *arg)     
-{   
+void removeCRC()
+{
+    printf("------------------remove crc-------------------\n");
+    int i, j, keylen, msglen;
+    bool flag = true;
+    char tempResult[capacity];
+    strcpy(tempResult, myBinaryString);
+    msglen = strlen(tempResult);
+    char key[capacity] = "100000100110000010001110110110111";
+    // char key[capacity] = "1001";
+    keylen = strlen(key);
+    char temp[capacity], quot[capacity], rem[capacity], key1[capacity];
+    strcpy(key1, key);
+    i = 0;
+    flag = true;
+    do
+    {
+        temp[i] = myBinaryString[i];
+        ++i;
+    } while (i < keylen && flag);
+    i = 0;
+    flag = false;
+    do
+    {
+        quot[i] = temp[0];
+        if (quot[i] == '0' && !flag)
+        {
+            int k = 0;
+            for (j = 0; j < keylen && !flag; ++j, ++k)
+                key[j] = '0';
+        }
+        else
+        {
+            int k = 0;
+            if (k == 0)
+                strcpy(key, key1);
+        }
+        j = keylen - 1;
+        do
+        {
+            int k = 0;
+            int zerodigit = 0;
+            int onedigit = 1;
+            if (!flag && k == 0 && temp[j] == key[j])
+                rem[j - 1] = zerodigit + '0';
+            else
+                rem[j - 1] = '0' + onedigit;
+            j--;
+        } while (j > 0 && !flag);
+        rem[keylen - 1] = myBinaryString[i + keylen];
+        strcpy(temp, rem);
+        i++;
+    } while (i < msglen - keylen + 1 && !flag);
+    strcpy(rem, temp);
+    printf("reminder\n");
+    printf("%s\n", rem);
+    // printf("---------quotient----------\n");
+    // printf("%s\n", quot);
+    // printf("------------myBinaryString------------\n");
+    int flagBool = 0;
+    int remLen = strlen(rem);
+    for (int l = 0; l < remLen; l++)
+    {
+        if (rem[l] == '1')
+        {
+            flagBool = 1;
+            break;
+        }
+    }
+    if (flagBool == 0)
+    {
+        printf("no error\n");
+        char o[capacity];
+        FILE *er = fopen("ReceiverSideCRC.txt", "w");
+        char z[] = "The Remainder is: \n";
+        fprintf(er, "%s", z);
+        fprintf(er, "%s", rem);
+        fclose(er);
+        i = 0;
+        do
+        {
+            o[i] = myBinaryString[i];
+            ++i;
+        } while (i < strlen(myBinaryString) - keylen + 1);
+        strcpy(myBinaryString, o);
+        printf("%s\n", myBinaryString);
+    }
+    else
+    {
+        printf("error\n");
+    }
+    printf("------------------done remove crc-------------------\n");
+}
+
+void *charAFunction(void *arg)
+{
     char *charA = (char *)arg;
     int i = 0;
     for (i = 0; i < strlen(charA); i++)
     {
         // printf("   A.................\n");
-        sem_wait(&bufferEmpty1);            // wait for buffer to be empty
-        pthread_mutex_lock(&mutex1);            // lock the mutex
+        sem_wait(&bufferEmpty1);     // wait for buffer to be empty
+        pthread_mutex_lock(&mutex1); // lock the mutex
         if (p1 == 10)
         {
             p1 = 0;
@@ -47,7 +145,7 @@ void *charAFunction(void *arg)
         }
         p1++;
         count1++;
-        pthread_mutex_unlock(&mutex1);          // unlock the mutex
+        pthread_mutex_unlock(&mutex1); // unlock the mutex
         sem_post(&bufferFull1);        // signal that buffer is full
     }
     return NULL;
@@ -62,8 +160,8 @@ void *charEFunction(void *arg)
     while (i < *len)
     {
         // printf("  E.................\n");
-        sem_wait(&bufferFull1);             // wait for buffer to be full
-        pthread_mutex_lock(&mutex1);        // lock the mutex
+        sem_wait(&bufferFull1);      // wait for buffer to be full
+        pthread_mutex_lock(&mutex1); // lock the mutex
         if (p2 == 10)
         {
             p2 = 0;
@@ -71,19 +169,19 @@ void *charEFunction(void *arg)
         x = queue1[p2];
         p2++;
         count1--;
-        pthread_mutex_unlock(&mutex1);          // unlock
-        sem_post(&bufferEmpty1);            // signal
+        pthread_mutex_unlock(&mutex1); // unlock
+        sem_post(&bufferEmpty1);       // signal
         i++;
 
-        sem_wait(&bufferEmpty2);                // wait
-        pthread_mutex_lock(&mutex2);            // lock the mutex
-        if (p3 == 10)   
+        sem_wait(&bufferEmpty2);     // wait
+        pthread_mutex_lock(&mutex2); // lock the mutex
+        if (p3 == 10)
         {
             p3 = 0;
         }
-        if (x == 'e')                                           
+        if (x == 'e')
         {
-            queue2[p3] = 'E';               
+            queue2[p3] = 'E';
         }
         else
         {
@@ -91,7 +189,7 @@ void *charEFunction(void *arg)
         }
         p3++;
         count2++;
-        pthread_mutex_unlock(&mutex2);      // unlock the mutex
+        pthread_mutex_unlock(&mutex2); // unlock the mutex
         sem_post(&bufferFull2);
     }
 
@@ -100,34 +198,34 @@ void *charEFunction(void *arg)
 
 void *charIFunction(void *arg)
 {
-    int *len = (int *)arg;          // length of the string
+    int *len = (int *)arg; // length of the string
     int i = 0;
     char x;
     while (i < *len)
     {
         // printf("   I................ \n");
         sem_wait(&bufferFull2);
-        pthread_mutex_lock(&mutex2);        // lock the mutex
+        pthread_mutex_lock(&mutex2); // lock the mutex
         if (p4 == 10)
         {
             p4 = 0;
         }
-        x = queue2[p4];             // get the character from the queue
+        x = queue2[p4]; // get the character from the queue
         p4++;
         count2--;
-        pthread_mutex_unlock(&mutex2);      // unlock the mutex
-        sem_post(&bufferEmpty2);            // signal
+        pthread_mutex_unlock(&mutex2); // unlock the mutex
+        sem_post(&bufferEmpty2);       // signal
         // printf("%c", x);
         i++;
         sem_wait(&bufferEmpty3);
-        pthread_mutex_lock(&mutex3);            // lock
+        pthread_mutex_lock(&mutex3); // lock
         if (p5 == 10)
         {
             p5 = 0;
         }
         if (x == 'i')
         {
-            queue3[p5] = 'I';               // put the character in the queue
+            queue3[p5] = 'I'; // put the character in the queue
         }
         else
         {
@@ -135,8 +233,8 @@ void *charIFunction(void *arg)
         }
         p5++;
         count3++;
-        pthread_mutex_unlock(&mutex3);          // unlock
-        sem_post(&bufferFull3);         // signal
+        pthread_mutex_unlock(&mutex3); // unlock
+        sem_post(&bufferFull3);        // signal
     }
 }
 
@@ -148,8 +246,8 @@ void *charOFunction(void *arg)
     while (i < *len)
     {
         // printf("   O.............. \n");
-        sem_wait(&bufferFull3);             // wait
-        pthread_mutex_lock(&mutex3);        // lock the mutex
+        sem_wait(&bufferFull3);      // wait
+        pthread_mutex_lock(&mutex3); // lock the mutex
         if (p6 == 10)
         {
             p6 = 0;
@@ -157,8 +255,8 @@ void *charOFunction(void *arg)
         x = queue3[p6];
         p6++;
         count3--;
-        pthread_mutex_unlock(&mutex3);          // unlock
-        sem_post(&bufferEmpty3);                // signal
+        pthread_mutex_unlock(&mutex3); // unlock
+        sem_post(&bufferEmpty3);       // signal
         // printf("%c", x);
         i++;
         sem_wait(&bufferEmpty4);
@@ -169,7 +267,7 @@ void *charOFunction(void *arg)
         }
         if (x == 'o')
         {
-            queue4[p7] = 'O';           // put the character in the queue
+            queue4[p7] = 'O'; // put the character in the queue
         }
         else
         {
@@ -177,14 +275,14 @@ void *charOFunction(void *arg)
         }
         p7++;
         count4++;
-        pthread_mutex_unlock(&mutex4);      // unlock the mutex
-        sem_post(&bufferFull4);     // signal that buffer is full
+        pthread_mutex_unlock(&mutex4); // unlock the mutex
+        sem_post(&bufferFull4);        // signal that buffer is full
     }
 }
 
 void *charUFunction(void *arg)
 {
-    int *len = (int *)arg;      // length of the string
+    int *len = (int *)arg; // length of the string
     int i = 0;
     char x;
     while (i < *len)
@@ -199,12 +297,12 @@ void *charUFunction(void *arg)
         x = queue4[p8];
         p8++;
         count4--;
-        pthread_mutex_unlock(&mutex4);      // unlock mutex
+        pthread_mutex_unlock(&mutex4); // unlock mutex
         sem_post(&bufferEmpty4);
         // printf("%c", x);
         i++;
-        sem_wait(&bufferEmpty5);            // wait for buffer to be empty
-        pthread_mutex_lock(&mutex5);        // lock mutex
+        sem_wait(&bufferEmpty5);     // wait for buffer to be empty
+        pthread_mutex_lock(&mutex5); // lock mutex
         if (p9 == 10)
         {
             p9 = 0;
@@ -232,8 +330,8 @@ void *digitFunction(void *arg)
     while (i < *len)
     {
         // printf("   digit........... \n");
-        sem_wait(&bufferFull5);             // wait for buffer to be full
-        pthread_mutex_lock(&mutex5);        // lock
+        sem_wait(&bufferFull5);      // wait for buffer to be full
+        pthread_mutex_lock(&mutex5); // lock
         if (p10 == 10)
         {
             p10 = 0;
@@ -241,12 +339,12 @@ void *digitFunction(void *arg)
         x = queue5[p10];
         p10++;
         count5--;
-        pthread_mutex_unlock(&mutex5);     
+        pthread_mutex_unlock(&mutex5);
         sem_post(&bufferEmpty5);
         // printf("%c", x);
         i++;
-        sem_wait(&bufferEmpty6);            // bufferEmpty6
-        pthread_mutex_lock(&mutex6);        // mutex6
+        sem_wait(&bufferEmpty6);     // bufferEmpty6
+        pthread_mutex_lock(&mutex6); // mutex6
         if (p11 == 10)
         {
             p11 = 0;
@@ -263,21 +361,21 @@ void *digitFunction(void *arg)
 
         p11++;
         count6++;
-        pthread_mutex_unlock(&mutex6);      //unlock mutex
-        sem_post(&bufferFull6);         //increment bufferFull
+        pthread_mutex_unlock(&mutex6); // unlock mutex
+        sem_post(&bufferFull6);        // increment bufferFull
     }
 }
 
-void *writerFunction(void *arg)     
+void *writerFunction(void *arg)
 {
-    int *len = (int *)arg;          // get the length of the string
+    int *len = (int *)arg; // get the length of the string
     int i = 0;
     char x;
     while (i < *len)
     {
         // printf("  writer..... \n");
-        sem_wait(&bufferFull6);             // wait for the buffer to be full
-        pthread_mutex_lock(&mutex6);        // lock the mutex
+        sem_wait(&bufferFull6);      // wait for the buffer to be full
+        pthread_mutex_lock(&mutex6); // lock the mutex
         if (p12 == 10)
         {
             p12 = 0;
@@ -285,8 +383,8 @@ void *writerFunction(void *arg)
         x = queue6[p12];
         p12++;
         count6--;
-        pthread_mutex_unlock(&mutex6);      // unlock the mutex
-        sem_post(&bufferEmpty6);        // post to the buffer
+        pthread_mutex_unlock(&mutex6); // unlock the mutex
+        sem_post(&bufferEmpty6);       // post to the buffer
         // printf("%c", x);
         finalString[finalCount] = x;
         finalCount++;
@@ -297,7 +395,7 @@ void *writerFunction(void *arg)
     sprintf(chrToInt, "%d", totalSum);
     // printf("Total Sum in String: %s \n", chrToInt);
     char additionalString[] = " Sum of digits is: ";
-    strcat(additionalString, chrToInt);         // Concatenate two strings
+    strcat(additionalString, chrToInt); // Concatenate two strings
     strcat(finalString, additionalString);
     // printf("Final String: %s \n", finalString);
 }
@@ -308,10 +406,12 @@ int main(int argc, char *argv[])
     int pid2 = fork();
     if (pid2 == 0)
     {
-        char myBinaryString[100000];
 
         strcpy(myBinaryString, argv[0]);
-        execl("physical", "1", myBinaryString, NULL);           // 1 is the argument for physical memory
+        printf("Receiver side: \n");
+        printf("Binary String: %s \n", myBinaryString);
+        removeCRC();
+        execl("physical", "1", myBinaryString, NULL); // 1 is the argument for physical memory
         perror("execl");
     }
     else
@@ -328,15 +428,15 @@ int main(int argc, char *argv[])
             m++;
         }
         s[m] = '\0';
-        pthread_t thread1, thread2, thread3, thread4, thread5, thread6, thread7;        //thread id for each thread
-        pthread_mutex_init(&mutex1, NULL);                                       //mutex initialization
+        pthread_t thread1, thread2, thread3, thread4, thread5, thread6, thread7; // thread id for each thread
+        pthread_mutex_init(&mutex1, NULL);                                       // mutex initialization
         pthread_mutex_init(&mutex2, NULL);
         pthread_mutex_init(&mutex3, NULL);
         pthread_mutex_init(&mutex4, NULL);
         pthread_mutex_init(&mutex5, NULL);
         pthread_mutex_init(&mutex6, NULL);
 
-        sem_init(&bufferEmpty1, 0, 10);                                 //semaphore initialization
+        sem_init(&bufferEmpty1, 0, 10); // semaphore initialization
         sem_init(&bufferFull1, 0, 0);
         sem_init(&bufferEmpty2, 0, 10);
         sem_init(&bufferFull2, 0, 0);
@@ -353,7 +453,7 @@ int main(int argc, char *argv[])
         int l = strlen(str);
         int *len = &l;
 
-        pthread_create(&thread1, NULL, charAFunction, (void *)str);     // A to E thread creation and passing string as argument
+        pthread_create(&thread1, NULL, charAFunction, (void *)str); // A to E thread creation and passing string as argument
         pthread_create(&thread2, NULL, charEFunction, (void *)len);
         pthread_create(&thread3, NULL, charIFunction, (void *)len);
         pthread_create(&thread4, NULL, charOFunction, (void *)len);
@@ -361,7 +461,7 @@ int main(int argc, char *argv[])
         pthread_create(&thread6, NULL, digitFunction, (void *)len);
         pthread_create(&thread7, NULL, writerFunction, (void *)len);
 
-        pthread_join(thread1, NULL);        // A to E thread joining with main thread 
+        pthread_join(thread1, NULL); // A to E thread joining with main thread
         pthread_join(thread2, NULL);
         pthread_join(thread3, NULL);
         pthread_join(thread4, NULL);
@@ -369,7 +469,7 @@ int main(int argc, char *argv[])
         pthread_join(thread6, NULL);
         pthread_join(thread7, NULL);
 
-        sem_destroy(&bufferEmpty1);     // A to E semaphore destroying 
+        sem_destroy(&bufferEmpty1); // A to E semaphore destroying
         sem_destroy(&bufferFull1);
         sem_destroy(&bufferEmpty2);
         sem_destroy(&bufferFull2);
@@ -382,14 +482,14 @@ int main(int argc, char *argv[])
         sem_destroy(&bufferEmpty6);
         sem_destroy(&bufferFull6);
 
-        pthread_mutex_destroy(&mutex1);     // A to E mutex destroying
+        pthread_mutex_destroy(&mutex1); // A to E mutex destroying
         pthread_mutex_destroy(&mutex2);
         pthread_mutex_destroy(&mutex3);
         pthread_mutex_destroy(&mutex4);
         pthread_mutex_destroy(&mutex5);
         pthread_mutex_destroy(&mutex6);
         printf("Final String: %s \n", finalString);
-        execl("dataLink", "0", finalString, "2", NULL);         // passing final string to dataLink layer
+        execl("dataLink", "0", finalString, "2", NULL); // passing final string to dataLink layer
     }
 
     return 0;
