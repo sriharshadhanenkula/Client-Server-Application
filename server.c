@@ -5,6 +5,83 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <wait.h>
+#include <stdbool.h>
+
+char DataToBeSentToClient[100000];
+#define capacity 100000
+
+void CRC()
+{
+    printf("------------------crc-------------------\n");
+    int i, j, keylen, msglen;
+    bool flag = true;
+
+    char binInputTemp[capacity];
+    strcpy(binInputTemp, DataToBeSentToClient);
+    msglen = strlen(binInputTemp);
+    char key[capacity] = "100000100110000010001110110110111";
+    keylen = strlen(key);
+    char temp[capacity], quot[capacity], rem[capacity], key1[capacity];
+    i = 0;
+    while (i < keylen - 1 && flag)
+    {
+        binInputTemp[msglen + i] = '0';
+        ++i;
+    }
+    strcpy(key1, key);
+    i = 0;
+    do
+    {
+        temp[i] = binInputTemp[i];
+        ++i;
+    } while (i < keylen && flag);
+    i = 0;
+    flag = false;
+    do
+    {
+        quot[i] = temp[0];
+        if (quot[i] == '0' && !flag)
+        {
+            int k = 0;
+            for (j = 0; j < keylen && !flag; k++, j++)
+                key[j] = '0';
+        }
+        else
+        {
+            int k = 0;
+            if (k == 0)
+                strcpy(key, key1);
+        }
+        j = keylen - 1;
+        do
+        {
+            int k = 0;
+            int one = 1, zero = 0;
+            if (!flag && k == 0 && temp[j] == key[j])
+                rem[j - 1] = zero + '0';
+            else
+                rem[j - 1] = one + '0';
+            j--;
+        } while (j > 0 && !flag);
+        rem[keylen - 1] = binInputTemp[i + keylen];
+        strcpy(temp, rem);
+        ++i;
+    } while (i < msglen && !flag);
+
+    strcpy(rem, temp);
+    strcat(DataToBeSentToClient, rem);
+    printf("rem\n");
+    printf("%s\n", rem);
+    // printf("DataToBeSentToClient\n");
+    // printf("%s\n", DataToBeSentToClient);
+    FILE *er = fopen("filename.binf", "w");
+    fprintf(er, "%s", DataToBeSentToClient);
+    char z[] = "\nThe Remainder is: \n";
+    fprintf(er, "%s", z);
+    fprintf(er, "%s", rem);
+    fclose(er);
+    printf("------------------done crc append-------------------\n");
+}
 
 int main()
 {
@@ -77,7 +154,7 @@ int main()
             FILE *fp;
             fp = fopen("filename.binf", "r"); //  open the file to read
             int har = 0;
-            char DataToBeSentToClient[100000];
+
             char ch;
             while ((ch = fgetc(fp)) != EOF)
             {
@@ -87,7 +164,7 @@ int main()
             DataToBeSentToClient[har] = '\0';
             fclose(fp);
             // printf("Data To be sent %s \n", DataToBeSentToClient);
-
+            CRC();
             bzero(buffer, 100000);
             strcpy(buffer, DataToBeSentToClient);
             // printf("Server to Client in Server: %s\n", buffer);

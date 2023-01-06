@@ -151,7 +151,8 @@ void sendToDataLink(char myString[], int val)
 
     userString[c + 1] = '\0';
 
-    printf("%s\n", userString);
+    printf("%s \n", userString);
+    printf("\n");
 
     FILE *fp;
     fp = fopen("result.txt", "w"); // storing output

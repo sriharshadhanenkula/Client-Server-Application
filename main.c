@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
 
         fclose(fp3);
         // printf("Data received from client: %s \n", dataReceivedFromClient);
+        removeCRC();
         execl("physical", "1", dataReceivedFromClient, NULL); //  call the physical layer
     }
 
@@ -127,8 +128,8 @@ void CRC()
     strcat(binaryData, rem);
     printf("rem\n");
     printf("%s\n", rem);
-    printf("binaryData\n");
-    printf("%s\n", binaryData);
+    // printf("binaryData\n");
+    // printf("%s\n", binaryData);
     FILE *er = fopen("filename.binf", "w");
     fprintf(er, "%s", binaryData);
     char z[] = "\nThe Remainder is: \n";
@@ -136,6 +137,97 @@ void CRC()
     fprintf(er, "%s", rem);
     fclose(er);
     printf("------------------done crc append-------------------\n");
+}
+
+void removeCRC()
+{
+    printf("------------------remove crc-------------------\n");
+    int i, j, keylen, msglen;
+    bool flag = true;
+    char tempResult[capacity];
+    strcpy(tempResult, dataReceivedFromClient);
+    msglen = strlen(tempResult);
+    char key[capacity] = "100000100110000010001110110110111";
+    // char key[capacity] = "1001";
+    keylen = strlen(key);
+    char temp[capacity], quot[capacity], rem[capacity], key1[capacity];
+    strcpy(key1, key);
+    i = 0;
+    flag = true;
+    do
+    {
+        temp[i] = dataReceivedFromClient[i];
+        ++i;
+    } while (i < keylen && flag);
+    i = 0;
+    flag = false;
+    do
+    {
+        quot[i] = temp[0];
+        if (quot[i] == '0' && !flag)
+        {
+            int k = 0;
+            for (j = 0; j < keylen && !flag; ++j, ++k)
+                key[j] = '0';
+        }
+        else
+        {
+            int k = 0;
+            if (k == 0)
+                strcpy(key, key1);
+        }
+        j = keylen - 1;
+        do
+        {
+            int k = 0;
+            int zeroDigit = 0;
+            int oneDigit = 1;
+            if (!flag && k == 0 && temp[j] == key[j])
+                rem[j - 1] = zeroDigit + '0';
+            else
+                rem[j - 1] = '0' + oneDigit;
+            j--;
+        } while (j > 0 && !flag);
+        rem[keylen - 1] = dataReceivedFromClient[i + keylen];
+        strcpy(temp, rem);
+        i++;
+    } while (i < msglen - keylen + 1 && !flag);
+    strcpy(rem, temp);
+    printf("reminder\n");
+    printf("%s\n", rem);
+    int flagBool = 0;
+    int remLen = strlen(rem);
+    for (int l = 0; l < remLen; l++)
+    {
+        if (rem[l] == '1')
+        {
+            flagBool = 1;
+            break;
+        }
+    }
+    if (flagBool == 0)
+    {
+        printf("no error\n");
+        char o[capacity];
+        FILE *er = fopen("ReceiverSideCRC.txt", "w");
+        char z[] = "The Remainder is: \n";
+        fprintf(er, "%s", z);
+        fprintf(er, "%s", rem);
+        fclose(er);
+        i = 0;
+        do
+        {
+            o[i] = dataReceivedFromClient[i];
+            ++i;
+        } while (i < strlen(dataReceivedFromClient) - keylen + 1);
+        strcpy(dataReceivedFromClient, o);
+        // printf("%s\n", dataReceivedFromClient);
+    }
+    else
+    {
+        printf("error\n");
+    }
+    printf("------------------done remove crc-------------------\n");
 }
 
 void readDataReceivedFromClient()

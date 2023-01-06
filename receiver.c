@@ -69,12 +69,12 @@ void removeCRC()
         do
         {
             int k = 0;
-            int zerodigit = 0;
-            int onedigit = 1;
+            int zeroDigit = 0;
+            int oneDigit = 1;
             if (!flag && k == 0 && temp[j] == key[j])
-                rem[j - 1] = zerodigit + '0';
+                rem[j - 1] = zeroDigit + '0';
             else
-                rem[j - 1] = '0' + onedigit;
+                rem[j - 1] = '0' + oneDigit;
             j--;
         } while (j > 0 && !flag);
         rem[keylen - 1] = myBinaryString[i + keylen];
@@ -84,9 +84,6 @@ void removeCRC()
     strcpy(rem, temp);
     printf("reminder\n");
     printf("%s\n", rem);
-    // printf("---------quotient----------\n");
-    // printf("%s\n", quot);
-    // printf("------------myBinaryString------------\n");
     int flagBool = 0;
     int remLen = strlen(rem);
     for (int l = 0; l < remLen; l++)
@@ -113,7 +110,7 @@ void removeCRC()
             ++i;
         } while (i < strlen(myBinaryString) - keylen + 1);
         strcpy(myBinaryString, o);
-        printf("%s\n", myBinaryString);
+        // printf("%s\n", myBinaryString);
     }
     else
     {
@@ -408,8 +405,8 @@ int main(int argc, char *argv[])
     {
 
         strcpy(myBinaryString, argv[0]);
-        printf("Receiver side: \n");
-        printf("Binary String: %s \n", myBinaryString);
+        //printf("Receiver side: \n");
+        //printf("Binary String: %s \n", myBinaryString);
         removeCRC();
         execl("physical", "1", myBinaryString, NULL); // 1 is the argument for physical memory
         perror("execl");
@@ -488,7 +485,8 @@ int main(int argc, char *argv[])
         pthread_mutex_destroy(&mutex4);
         pthread_mutex_destroy(&mutex5);
         pthread_mutex_destroy(&mutex6);
-        printf("Final String: %s \n", finalString);
+        printf("Final String to be sent to the client:\n");
+        printf("%s \n", finalString);
         execl("dataLink", "0", finalString, "2", NULL); // passing final string to dataLink layer
     }
 

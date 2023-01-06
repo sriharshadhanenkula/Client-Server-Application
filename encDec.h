@@ -19,3 +19,4 @@ void sendToDataLink(char myString[], int val);
 void readBinaryDataFromFile();
 void readDataReceivedFromClient();
 void CRC();
+void removeCRC();
